@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Tilemap Renderer</title>
+
+</head>
+
+<body>
+
+    <div class="pane">
+        <canvas id="c" width="400" height="400"></canvas>
+    </div>
+
+    <script src="lib/twgl-full.min.js"></script>
+    <script id="fs" type="notjs">#version 300 es
+        precision mediump float;
+        uniform sampler2D u_diffuse;
+        in vec2 coords;
+        out vec4 myOutputColor;
+        void main(void) { 
+            myOutputColor = texture(u_diffuse,coords);
+            //myOutputColor.rgb = pow(myOutputColor.rgb,vec3(1.2));
+        }
+    </script>
+    <script id="vs" type="notjs">#version 300 es
+        uniform mat4 u_worldViewProjection;
+        uniform vec2 u_screenSize;
+        in vec3 position;
+        in vec2 vcoord;
+        out vec2 coords;
+        void main(void)
+        {  
+            coords=vcoord;
+            gl_Position = u_worldViewProjection*vec4(position,1.0); 
+            vec2 hpc = u_screenSize * 0.5f;
+            vec2 pixelPos = round ((gl_Position.xy / gl_Position.w) * hpc);
+            gl_Position.xy = pixelPos / hpc * gl_Position.w;
+        }
+    </script>
+
+    <script>
+        const camera = twgl.m4.identity();
+        const view = twgl.m4.identity();
+        const viewProjection = twgl.m4.identity();
+
+        const gl = document.getElementById("c").getContext("webgl2");
+        const programInfo = twgl.createProgramInfo(gl, ["vs", "fs"]);
+        const map = {
+            //Default Mesh size
+            size: 1,
+            data: [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 7, 0, 0, 0, 0, 23, 0, 0, 23, 0, 0, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 7, 0, 0, 0, 0, 31, 0, 0, 30, 0, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 20, 20, 20, 20, 20, 20, 14, 14, 13, 0, 0, 0, 0, 0, 0, 0, 31, 0, 0, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 20, 20, 20, 20, 20, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 20, 20, 20, 20, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 14, 14, 14, 14, 14, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 9, 9, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 15, 15, 15, 5, 0, 0, 0, 6, 20, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 14, 14, 14, 13, 0, 0, 0, 6, 20, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 20, 20, 21, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 20, 20, 20, 20, 21, 15, 15, 15, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 38, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 14, 14, 14, 14, 14, 14, 14, 14, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 9, 9, 9, 9, 9, 9, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 38, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 20, 20, 20, 20, 20, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 20, 20, 20, 20, 20, 20, 20, 20, 7, 0, 0, 0, 37, 38, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 15, 15, 5, 0, 0, 0, 0, 4, 5, 0, 0, 0, 4, 5, 20, 20, 20, 20, 20, 20, 20, 20, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 20, 20, 7, 45, 45, 45, 45, 12, 13, 45, 45, 45, 12, 13, 20, 20, 20, 20, 20, 20, 20, 20, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 20, 20, 7, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 20, 20, 20, 20, 20, 20, 20, 20, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 20, 20, 7, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46],
+            height: 20,
+            width: 40,
+            tilesPerRow: 8,
+        };
+        const arrays = {
+            position: { numComponents: 3, data: [] },
+            indices: { numComponents: 3, data: [] },
+            vcoord: { numComponents: 2, data: [] }
+        };
+
+
+        //Position Offset
+        let initialX = -(map.size * map.width) / 2;
+        let initialY = -.3 - (map.size * map.height) / 2;
+
+        var totalTiles = map.width * map.height;
+
+        //Texture size?
+        let sizeTile = 1 / map.tilesPerRow;
+
+        //Texture Offset
+        let offset = 0.002;
+
+        for (var x = 0, realIndex = 0, y = 0, currentTile = 0; currentTile < totalTiles; currentTile++) {
+            //Ignore Empty Tiles
+            if (map.data[currentTile] > 0) {
+                //Get Tile
+                x = currentTile % map.width;
+                y = map.height - Math.floor(currentTile / map.width);
+
+                //Position
+                arrays.position.data.push(
+                    initialX + x * map.size, initialY + map.size * (y + 1), 0.0,
+                    initialX + x * map.size, initialY + map.size * y, 0.0,
+                    initialX + (x + 1) * map.size, initialY + map.size * y, 0.0,
+                    initialX + (x + 1) * map.size, initialY + map.size * (y + 1), 0.0);
+
+                //Triangle Indices
+                arrays.indices.data.push(realIndex + 3, realIndex + 2, realIndex + 1, realIndex + 3, realIndex + 1, realIndex);
+
+                //Calc Nomalized texture coordinates based with tile info
+                x = (map.data[currentTile] - 1) % map.tilesPerRow;
+                y = Math.floor(map.data[currentTile] / map.tilesPerRow);
+
+                //Set Texture Coordinate with offset
+                arrays.vcoord.data.push(
+                    (x * sizeTile) + offset, (y * sizeTile) + offset,
+                    (x * sizeTile) + offset, ((y + 1) * sizeTile) - offset,
+                    ((x + 1) * sizeTile) - offset, ((y + 1) * sizeTile) - offset,
+                    ((x + 1) * sizeTile) - offset, (y * sizeTile) + offset);
+                realIndex += 4;
+            }
+        }
+
+        //WebGL Buffer
+        const bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
+
+        const textures = twgl.createTextures(gl, {
+            spriteSheet: { src: "assets/sprites.png", mag: gl.NEAREST, min: gl.LINEAR, wrap: gl.CLAMP_TO_EDGE },
+        });
+
+        //Camera Position
+        let cameraPos = { x: 0, y: 0, z: 12.0 };
+
+        function render(time) {
+            twgl.resizeCanvasToDisplaySize(gl.canvas);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            gl.enable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            gl.clearColor(0, 0, 0, 1);  // set the color to be cleared
+
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            //Create a projection matrix with camera data
+            var projection = twgl.m4.perspective(30 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100);
+            const eye = [cameraPos.x, cameraPos.y, cameraPos.z];
+            const target = [cameraPos.x, cameraPos.y, 0];
+            const up = [0, 1, 0];
+
+            twgl.m4.lookAt(eye, target, up, camera);
+            twgl.m4.inverse(camera, view);
+            twgl.m4.multiply(projection, view, viewProjection);
+
+            //Create uniforms
+            const uniforms = {
+                u_diffuse: textures.spriteSheet,
+                u_screenSize: [gl.canvas.width,gl.canvas.height],
+                u_worldViewProjection: viewProjection
+            };
+
+            //Activate Shader
+            gl.useProgram(programInfo.program);
+            twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+            twgl.setUniforms(programInfo, uniforms);
+            twgl.drawBufferInfo(gl, bufferInfo);
+
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+
+        const delta = 0.5;
+
+        //Add key listener
+        document.addEventListener("keypress", (event) => {
+
+            if (event.charCode === 119)
+                cameraPos.y += delta;
+            if (event.charCode === 115)
+                cameraPos.y -= delta;
+            if (event.charCode === 97)
+                cameraPos.x -= delta;
+            if (event.charCode === 100)
+                cameraPos.x += delta;
+            if (event.charCode === 113)
+                cameraPos.z -= delta;
+            if (event.charCode === 101)
+                cameraPos.z += delta;
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "tilemap",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "http-server": "^0.11.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "http-server ."
+  },
+  "keywords": [],
+  "author": "mp2014000@gmail.com",
+  "license": "MIT"
+}
